@@ -9,11 +9,18 @@ import static org.junit.Assert.*;
  */
 
 public class AdminControllerTest {
+
+
     AdminController s = new AdminController();
 
     @Test
     public void siaserietest() throws Exception {
         s.siaserie();
+    }
+
+    @Test
+    public void jirastest() throws Exception {
+        s.jiras();
     }
 
 }

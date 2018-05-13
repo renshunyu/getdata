@@ -4,6 +4,19 @@ import com.asia.Result.JsonResult;
 import com.asia.Result.JsonSerie;
 import com.asia.Result.ResultCode;
 
+import com.asia.Result.jsonJira;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import net.sf.json.JSON;
+import net.sf.json.xml.XMLSerializer;
+import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.NameValuePair;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -15,11 +28,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
+import java.io.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Created by renshunyu on 2018/5/10.
@@ -30,6 +42,7 @@ public class AdminController {
 
     //@Value("${spring.profiles}")
     //private String env;
+    Logger log = Logger.getLogger(AdminController.class);
     Workbook workbook;
     Sheet sheet;
 
@@ -390,4 +403,101 @@ public class AdminController {
 
         return series;
     }
+    @RequestMapping("/jiras")
+    public jsonJira[] jiras() throws IOException, ParseException {
+        // 创建httpClient实例对象
+        HttpClient httpClient = new HttpClient();
+        // 设置httpClient连接主机服务器超时时间：15000毫秒
+        httpClient.getHttpConnectionManager().getParams().setConnectionTimeout(15000);
+        // 创建post请求方法实例对象
+        PostMethod postMethod = new PostMethod("http://10.21.17.179:8888/login.jsp");
+        // 设置post请求超时时间
+        postMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT, 60000);
+
+        // （3）设置http request头
+        List<Header> headers = new ArrayList<Header>();
+        headers.add(new Header("content-type","application/x-www-form-urlencoded"));
+        headers.add(new Header("DNT","1"));
+        headers.add(new Header("Accept","text/html, application/xhtml+xml, */*"));
+        httpClient.getHostConfiguration().getParams().setParameter("http.default-headers", headers);
+        // 设置登陆时要求的信息，用户名和密码
+        NameValuePair[] data = { new NameValuePair("os_username", "rensy"),
+                new NameValuePair("os_password", "3edc@WSX") };
+        postMethod.setRequestBody(data);
+
+        try {
+            int rs = httpClient.executeMethod(postMethod);
+            log.info(rs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // （5）读取response头信息
+
+
+
+        Header headerResponse = postMethod.getResponseHeader("Set-Cookie");
+        String headerStr = headerResponse.getValue();
+        log.debug(headerStr);
+
+        headers.add(new Header("Cookie",headerStr));
+        httpClient.getHostConfiguration().getParams().setParameter("http.default-headers", headers);
+        // 创建一个Get方法实例对象
+        GetMethod getMethod = new GetMethod("http://10.21.17.179:8888/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=project+in+%28SSSIA%2C+SSIAM%2C+SSFORT%2C+SSSSA%29+AND+issuetype+in+%28BUG%2C+%E6%95%85%E9%9A%9C%29+AND+status+in+%28Open%2C+%E5%B7%B2%E4%B8%8A%E7%BA%BF%2C+%E5%B7%B2%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E6%B5%8B%E8%AF%95%2C+%E6%B5%8B%E8%AF%95%E4%B8%AD%2C+bug%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%BE%85%E9%AA%8C%E8%AF%81%2C+%E9%AA%8C%E8%AF%81%E4%B8%AD%2C+%E5%AE%9A%E4%BD%8D%E4%B8%AD%2C+%E5%BE%85%E4%BF%AE%E5%A4%8D%2C+%E6%95%85%E9%9A%9C%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%B7%B2%E6%8F%90%E4%BA%A4%29&tempMax=1000");
+        // 设置get请求超时为60000毫秒
+        getMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT, 60000);
+        try {
+            int statusCode = httpClient.executeMethod(getMethod);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+        InputStream is = null;
+        BufferedReader br = null;
+        String result = null;
+        // 通过getMethod实例，获取远程的一个输入流
+        is = getMethod.getResponseBodyAsStream();
+        // 包装输入流
+        br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+
+        StringBuffer sbf = new StringBuffer();
+        // 读取封装的输入流
+        String temp = null;
+        while ((temp = br.readLine()) != null) {
+            sbf.append(temp).append("\r\n");
+        }
+
+        result = sbf.toString();
+        log.debug(result);
+
+        XMLSerializer xmlSerializer = new XMLSerializer();
+        System.out.println("asdfasdfa");
+        JSON json = xmlSerializer.read(result);
+        JsonParser parse =new JsonParser();
+        JsonObject j1=(JsonObject) parse.parse(json.toString());
+        int pnum = j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().size();
+        jsonJira[] jirasdata = new jsonJira[pnum];
+        for (Integer i=0;i<pnum;i++){
+            String id,name,type;
+            Integer day;
+            SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy hh:mm:ss z", Locale.ENGLISH);
+            SimpleDateFormat sdf1 = new SimpleDateFormat("YYYY-MM-dd");
+            Date d = sdf.parse((j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().get(i).getAsJsonObject().get("created")+"").replace("\"",""));
+            sdf1.format(d);
+            id =(j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().get(i).getAsJsonObject().get("key").getAsJsonObject().get("#text")+"").replace("\"","");
+            name =(j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().get(i).getAsJsonObject().get("summary")+"").replace("\"","");
+            type =(j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().get(i).getAsJsonObject().get("type").getAsJsonObject().get("#text")+"").replace("\"","");
+            day =(int)((new Date().getTime() - d.getTime())/(1000*60*60*24));
+            jirasdata[i] = new jsonJira(id,name,day,type);
+        }
+
+        jsonJira[] jj = {new jsonJira("1",j1.get("channel").getAsJsonObject().get("item").getAsJsonArray().get(0).getAsJsonObject().get("key")+"",1,"dfd")};
+        return jirasdata;
+
+
+    }
+
+
 }
