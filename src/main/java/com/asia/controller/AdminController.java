@@ -83,6 +83,15 @@ public class AdminController {
     @Value(value="${com.backlog.sen.file}")
     private String senfile="13-【迭代Backlog】-SIA-C13.xlsx";
 
+    @Value(value="${com.jira.loginurl}")
+    private String loginurl = "http://10.21.17.179:8888/login.jsp";
+    @Value(value="${com.jira.username}")
+    private String username = "rensy";
+    @Value(value="${com.jira.password}")
+    private String password = "3edc@WSX";
+    @Value(value="${com.jira.queryurl}")
+    private String queryurl = "http://10.21.17.179:8888/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=project+in+%28SSSIA%2C+SSIAM%2C+SSFORT%2C+SSSSA%29+AND+issuetype+in+%28BUG%2C+%E6%95%85%E9%9A%9C%29+AND+status+in+%28Open%2C+%E5%B7%B2%E4%B8%8A%E7%BA%BF%2C+%E5%B7%B2%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E6%B5%8B%E8%AF%95%2C+%E6%B5%8B%E8%AF%95%E4%B8%AD%2C+bug%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%BE%85%E9%AA%8C%E8%AF%81%2C+%E9%AA%8C%E8%AF%81%E4%B8%AD%2C+%E5%AE%9A%E4%BD%8D%E4%B8%AD%2C+%E5%BE%85%E4%BF%AE%E5%A4%8D%2C+%E6%95%85%E9%9A%9C%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%B7%B2%E6%8F%90%E4%BA%A4%29&tempMax=1000";
+
     /**
      * 登录
      * @param response：用于保存token到cookie中
@@ -410,7 +419,7 @@ public class AdminController {
         // 设置httpClient连接主机服务器超时时间：15000毫秒
         httpClient.getHttpConnectionManager().getParams().setConnectionTimeout(15000);
         // 创建post请求方法实例对象
-        PostMethod postMethod = new PostMethod("http://10.21.17.179:8888/login.jsp");
+        PostMethod postMethod = new PostMethod(loginurl);
         // 设置post请求超时时间
         postMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT, 60000);
 
@@ -421,8 +430,8 @@ public class AdminController {
         headers.add(new Header("Accept","text/html, application/xhtml+xml, */*"));
         httpClient.getHostConfiguration().getParams().setParameter("http.default-headers", headers);
         // 设置登陆时要求的信息，用户名和密码
-        NameValuePair[] data = { new NameValuePair("os_username", "rensy"),
-                new NameValuePair("os_password", "3edc@WSX") };
+        NameValuePair[] data = { new NameValuePair("os_username", username),
+                new NameValuePair("os_password", password) };
         postMethod.setRequestBody(data);
 
         try {
@@ -443,7 +452,7 @@ public class AdminController {
         headers.add(new Header("Cookie",headerStr));
         httpClient.getHostConfiguration().getParams().setParameter("http.default-headers", headers);
         // 创建一个Get方法实例对象
-        GetMethod getMethod = new GetMethod("http://10.21.17.179:8888/sr/jira.issueviews:searchrequest-xml/temp/SearchRequest.xml?jqlQuery=project+in+%28SSSIA%2C+SSIAM%2C+SSFORT%2C+SSSSA%29+AND+issuetype+in+%28BUG%2C+%E6%95%85%E9%9A%9C%29+AND+status+in+%28Open%2C+%E5%B7%B2%E4%B8%8A%E7%BA%BF%2C+%E5%B7%B2%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E5%8F%91%E5%B8%83%2C+%E5%BE%85%E6%B5%8B%E8%AF%95%2C+%E6%B5%8B%E8%AF%95%E4%B8%AD%2C+bug%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%BE%85%E9%AA%8C%E8%AF%81%2C+%E9%AA%8C%E8%AF%81%E4%B8%AD%2C+%E5%AE%9A%E4%BD%8D%E4%B8%AD%2C+%E5%BE%85%E4%BF%AE%E5%A4%8D%2C+%E6%95%85%E9%9A%9C%E4%BF%AE%E5%A4%8D%E4%B8%AD%2C+%E5%B7%B2%E6%8F%90%E4%BA%A4%29&tempMax=1000");
+        GetMethod getMethod = new GetMethod(queryurl);
         // 设置get请求超时为60000毫秒
         getMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT, 60000);
         try {
@@ -473,7 +482,7 @@ public class AdminController {
         log.debug(result);
 
         XMLSerializer xmlSerializer = new XMLSerializer();
-        System.out.println("asdfasdfa");
+
         JSON json = xmlSerializer.read(result);
         JsonParser parse =new JsonParser();
         JsonObject j1=(JsonObject) parse.parse(json.toString());
